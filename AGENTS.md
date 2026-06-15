@@ -10,13 +10,20 @@
 
 ## 运行环境
 
-使用项目 conda 环境进行所有 Python 检查、脚本和测试：
+使用项目 conda 环境进行所有 Python 检查、脚本和测试。优先先激活 `yolov8` 环境，再直接运行 `python`，这样训练和验证日志可以实时输出：
 
 ```bash
-conda run -n yolov8 python ...
+conda activate yolov8
+python ...
 ```
 
-除非用户明确要求使用其他环境，否则不要使用系统 Python、基础 conda 环境或 Codex 捆绑的 Python 运行时进行项目级测试。
+训练、验证等长时间任务优先使用非缓冲模式，便于观察 epoch、loss、mAP、验证指标等过程日志：
+
+```bash
+python -u ...
+```
+
+除非用户明确要求使用其他环境，否则不要使用系统 Python、基础 conda 环境、Codex 捆绑的 Python 运行时，或默认改回非实时输出的环境包装方式进行项目级测试。
 
 ## 工作目录要求
 
@@ -24,21 +31,21 @@ conda run -n yolov8 python ...
 
 ```bash
 cd yolov8
-conda run -n yolov8 python ...
+conda activate yolov8
+python ...
 ```
 
-如果已经位于 `yolov8/` 目录内，则直接运行 `conda run -n yolov8 ...`。不要在根目录直接运行 v8 脚本，除非脚本或用户明确要求这样做。原因是本工程中的默认路径、数据配置、训练输出和包导入都按 `yolov8/` 作为工作目录设计。
+如果已经位于 `yolov8/` 目录内，则确认当前终端已激活 `yolov8` 环境后直接运行 `python ...`。不要在根目录直接运行 v8 脚本，除非脚本或用户明确要求这样做。原因是本工程中的默认路径、数据配置、训练输出和包导入都按 `yolov8/` 作为工作目录设计。
 
 ## 常见入口
 
 ```bash
-conda run -n yolov8 python run_nozzle_project.py
-conda run -n yolov8 python -m project.nozzle_inspection.main prepare-data
-conda run -n yolov8 python -m project.nozzle_inspection.main analyze-data
-conda run -n yolov8 python -m project.nozzle_inspection.main write-config
-conda run -n yolov8 python -m project.nozzle_inspection.main train
-conda run -n yolov8 python -m project.nozzle_inspection.main val --weights runs/train/nozzle_ng_ok7/weights/best.pt
-conda run -n yolov8 python -m project.nozzle_inspection.main report
+python -u run_nozzle_project.py
+python -m project.nozzle_inspection.main prepare-data
+python -m project.nozzle_inspection.main analyze-data
+python -m project.nozzle_inspection.main write-config
+python -u -m project.nozzle_inspection.main train
+python -u -m project.nozzle_inspection.main val --weights runs/train/nozzle_ng_ok7/weights/best.pt
 ```
 
 ## 项目流程特点
@@ -58,19 +65,19 @@ conda run -n yolov8 python -m project.nozzle_inspection.main report
 进行轻量级语法验证：
 
 ```bash
-conda run -n yolov8 python -m py_compile project/nozzle_inspection/main.py project/nozzle_inspection/run_config.py run_nozzle_project.py
+python -m py_compile project/nozzle_inspection/main.py project/nozzle_inspection/run_config.py run_nozzle_project.py
 ```
 
 进行依赖检查：
 
 ```bash
-conda run -n yolov8 python -c "import torch, cv2, openpyxl; print(torch.__version__, cv2.__version__)"
+python -c "import torch, cv2, openpyxl; print(torch.__version__, cv2.__version__)"
 ```
 
 如需跑测试：
 
 ```bash
-conda run -n yolov8 python -m pytest tests/nozzle_inspection
+python -m pytest tests/nozzle_inspection
 ```
 
 ## 文件编辑边界
