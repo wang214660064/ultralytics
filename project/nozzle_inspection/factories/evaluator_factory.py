@@ -31,6 +31,9 @@ class EvaluatorFactory:
         task: str = "val",
         project: str | Path = "runs/detect",
         name: str = "result-2-val",
+        save_txt: bool = False,
+        save_conf: bool = False,
+        save_json: bool = False,
     ) -> dict[str, object]:
         """返回可直接传给 YOLO(...).val() 的参数字典。"""
         return {
@@ -43,4 +46,7 @@ class EvaluatorFactory:
             "device": self.device,
             "project": _resolve_project_path(project),
             "name": name,
+            "save_txt": save_txt,
+            "save_conf": save_conf,
+            "save_json": save_json,
         }

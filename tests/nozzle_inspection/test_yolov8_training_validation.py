@@ -36,6 +36,11 @@ class Yolov8TrainingValidationTest(unittest.TestCase):
         argv = main_func.call_args.args[0]
         self.assertTrue(all(isinstance(arg, str) for arg in argv))
 
+    def test_default_badcase_output_uses_task_specific_badcase_folder(self):
+        config = RunConfig()
+
+        self.assertEqual(config.error_samples_dir, Path("runs/train/BadCase"))
+
     def test_trainer_builds_ultralytics_train_kwargs(self):
         kwargs = TrainerFactory(device="0").build_train_kwargs(
             data_yaml=Path("project/nozzle_inspection/configs/dataset.yaml"),
@@ -107,6 +112,20 @@ class Yolov8TrainingValidationTest(unittest.TestCase):
         self.assertEqual(kwargs["conf"], 0.7)
         self.assertEqual(kwargs["device"], "cpu")
 
+    def test_evaluator_can_save_predictions_for_error_review(self):
+        kwargs = EvaluatorFactory(device="cpu").build_val_kwargs(
+            data_yaml=Path("project/nozzle_inspection/configs/dataset.yaml"),
+            weights=Path("runs/train/nozzle_ng_ok_v8/weights/best.pt"),
+            conf=0.25,
+            save_txt=True,
+            save_conf=True,
+            save_json=True,
+        )
+
+        self.assertTrue(kwargs["save_txt"])
+        self.assertTrue(kwargs["save_conf"])
+        self.assertTrue(kwargs["save_json"])
+
     def test_main_train_uses_runner_with_dry_run(self):
         result = YoloResult(
             action="train",
@@ -176,6 +195,47 @@ class Yolov8TrainingValidationTest(unittest.TestCase):
         self.assertEqual(kwargs["conf"], 0.6)
         self.assertEqual(kwargs["project"], str((Path.cwd() / "runs" / "detect" / "val").resolve()))
         self.assertEqual(kwargs["name"], "nozzle_ng_ok_v8")
+
+    def test_main_val_can_export_error_samples_after_validation(self):
+        save_dir = Path("runs/detect/val/exp-conf-025")
+        result = YoloResult(
+            action="val",
+            returncode=0,
+            summary="val finished",
+            payload=type("Metrics", (), {"save_dir": save_dir})(),
+        )
+
+        with patch("project.nozzle_inspection.main.detect_device", return_value="cpu"), \
+             patch("project.nozzle_inspection.main.UltralyticsRunner") as runner_cls, \
+             patch("project.nozzle_inspection.main.ErrorSampleExporter") as exporter_cls:
+            runner_cls.return_value.val.return_value = result
+            exporter_cls.return_value.export.return_value = {
+                "missed_target": 1,
+                "false_alarm": 2,
+                "class_error": 3,
+                "images_with_errors": 4,
+            }
+
+            returncode = main([
+                "val",
+                "--weights",
+                "runs/train/nozzle_ng_ok_v8/weights/best.pt",
+                "--task",
+                "train",
+                "--save-txt",
+                "--save-conf",
+                "--export-error-samples",
+            ])
+
+        self.assertEqual(returncode, 0)
+        kwargs = runner_cls.return_value.val.call_args.args[0]
+        self.assertEqual(kwargs["split"], "train")
+        self.assertTrue(kwargs["save_txt"])
+        self.assertTrue(kwargs["save_conf"])
+        exporter_cls.assert_called_once()
+        self.assertEqual(exporter_cls.call_args.kwargs["task"], "train")
+        self.assertEqual(exporter_cls.call_args.kwargs["val_save_dir"], save_dir)
+        self.assertEqual(exporter_cls.call_args.kwargs["output_root"], Path("runs/train/BadCase"))
 
 
 if __name__ == "__main__":

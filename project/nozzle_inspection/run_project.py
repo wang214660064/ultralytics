@@ -69,6 +69,16 @@ def run() -> int:
             "--name",
             CONFIG.val_name,
         ]
+        if CONFIG.save_txt:
+            argv.append("--save-txt")
+        if CONFIG.save_conf:
+            argv.append("--save-conf")
+        if CONFIG.save_json:
+            argv.append("--save-json")
+        if CONFIG.export_error_samples:
+            argv.append("--export-error-samples")
+            argv.extend(["--error-samples-dir", CONFIG.error_samples_dir])
+            argv.extend(["--error-iou-thres", CONFIG.error_iou_threshold])
         if CONFIG.dry_run:
             argv.append("--dry-run")
         return _run_main(argv)

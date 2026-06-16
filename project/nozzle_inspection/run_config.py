@@ -10,6 +10,7 @@ YOLOv8 训练与验证运行配置。
 常见用法：
 1. 训练模型：把 action 改为 "train"，按需调整 epochs、batch、enable_augmentation。
 2. 验证模型：把 action 改为 "val"，把 weights 指向要评估的 best.pt。
+   如果要复查训练集错误样本，把 eval_task 改为 "train"。
 3. 只检查参数不真正运行：把 dry_run 改为 True，确认输出路径和参数后再改回 False。
 """
 
@@ -24,7 +25,7 @@ class RunConfig:
 
     action 可选：
     - train: 使用 Ultralytics YOLOv8 训练喷头 NG/OK 检测模型
-    - val: 使用指定权重验证 val 或 test 划分
+    - val: 使用指定权重验证 train、val 或 test 划分
 
     路径说明：
     - 相对路径都以 yolov8 目录为基准。
@@ -51,9 +52,9 @@ class RunConfig:
     # 优化器名称，直接传给 Ultralytics。
     optimizer: str = "AdamW"
     # 训练输出根目录。最终目录为 train_project / train_name。
-    train_project: Path = Path(r"runs/train/detect")
+    train_project: Path = Path(r"runs/train")
     # 训练实验名。权重默认会保存在 train_project / train_name / weights / best.pt。
-    train_name: str = "nozzle_ng_ok_v8-训练无增强"
+    train_name: str = "nozzle_ng_ok_v8-训练有增强"
     # True 表示允许复用已有输出目录；False 表示目录存在时自动递增新目录。
     exist_ok: bool = False
     # 数据增强总开关。False 会显式关闭 mosaic、翻转、HSV 等增强；True 使用 Ultralytics 默认增强。
@@ -63,16 +64,24 @@ class RunConfig:
 
     # 验证配置。
     # 待验证权重路径。训练完成后通常指向 runs/detect/.../weights/best.pt。
-    weights: Path = Path("runs/train/detect/"+train_name+"/weights/best.pt")
+    weights: Path = Path("runs/train/"+train_name+"/weights/best.pt")
     # 置信度阈值。想观察更严格的检测效果可调高，例如 0.5 或 0.7。
-    conf: float = 0.7
+    conf: float = 0.5
     # NMS IoU 阈值。一般保持默认即可。
     iou: float = 0.45
-    # 验证数据划分。"val" 评估验证集，"test" 评估测试集。
-    eval_task: str = "val"
+    # 验证数据划分。"train" 复查训练集，"val" 评估验证集，"test" 评估测试集。
+    eval_task: str = "train"
     # 验证输出根目录。最终目录为 val_project / val_name。
-    val_project: Path = Path(r"runs/detect/val/"+train_name)
+    val_project: Path = Path("runs/val/"+train_name)
     # 验证实验名。这里把 conf 拼进名字，方便比较不同置信度阈值。
     val_name: str = "exp-conf-"+ str(conf)
+    # 保存 Ultralytics 原生预测结果，错误样本复查需要 save_txt=True。
+    save_txt: bool = True
+    save_conf: bool = True
+    save_json: bool = True
+    # 导出错误样本到 runs/<eval_task>/BadCase，便于人工复查和后续报告整理。
+    export_error_samples: bool = True
+    error_samples_dir: Path = Path("runs/"+eval_task+"/BadCase")
+    error_iou_threshold: float = 0.5
 
 CONFIG = RunConfig()
