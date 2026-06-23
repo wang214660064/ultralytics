@@ -1,4 +1,4 @@
-path: ../out_cross_hash_clean
+path: ../out_cross_hash_clean_fixed
 train: images/train
 val: images/val
 test: images/test

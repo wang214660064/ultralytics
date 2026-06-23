@@ -41,11 +41,6 @@ python ...
 
 ```bash
 python -u run_nozzle_project.py
-python -m project.nozzle_inspection.main prepare-data
-python -m project.nozzle_inspection.main analyze-data
-python -m project.nozzle_inspection.main write-config
-python -u -m project.nozzle_inspection.main train
-python -u -m project.nozzle_inspection.main val --weights runs/train/nozzle_ng_ok7/weights/best.pt
 ```
 
 ## 项目流程特点
@@ -65,7 +60,7 @@ python -u -m project.nozzle_inspection.main val --weights runs/train/nozzle_ng_o
 进行轻量级语法验证：
 
 ```bash
-python -m py_compile project/nozzle_inspection/main.py project/nozzle_inspection/run_config.py run_nozzle_project.py
+python -m py_compile project/nozzle_inspection/run_project.py project/nozzle_inspection/run_config.py run_nozzle_project.py
 ```
 
 进行依赖检查：
@@ -96,5 +91,5 @@ python -m pytest tests/nozzle_inspection
 ## 任务处理偏好
 
 - 排查训练、验证、导入、路径问题时，优先沿实际调用链复核入口、配置、相对路径和工作目录。
-- 对已有封装保持尊重：能通过 `run_config.py`、`run_nozzle_project.py` 或 `project.nozzle_inspection.main` 解决的，不新增平行入口。
+- 项目采用最短脚本链路：只修改 `run_config.py`，统一运行 `run_nozzle_project.py`，不新增 CLI、Factory 或平行入口。
 - 如果用户要求"复核相关代码"，默认做代码路径级检查，并给出明确文件位置、根因和可验证命令。

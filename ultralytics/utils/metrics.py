@@ -109,6 +109,7 @@ def bbox_iou(
     GIoU: bool = False,
     DIoU: bool = False,
     CIoU: bool = False,
+    SIoU: bool = False,
     eps: float = 1e-7,
 ) -> torch.Tensor:
     """Calculate the Intersection over Union (IoU) between bounding boxes.
@@ -152,9 +153,27 @@ def bbox_iou(
 
     # IoU
     iou = inter / union
-    if CIoU or DIoU or GIoU:
+    if CIoU or DIoU or GIoU or SIoU:
         cw = b1_x2.maximum(b2_x2) - b1_x1.minimum(b2_x1)  # convex (smallest enclosing box) width
         ch = b1_y2.maximum(b2_y2) - b1_y1.minimum(b2_y1)  # convex height
+        if SIoU:
+            # SIoU: angle-aware distance cost + shape cost.
+            s_cw = (b2_x1 + b2_x2 - b1_x1 - b1_x2) / 2
+            s_ch = (b2_y1 + b2_y2 - b1_y1 - b1_y2) / 2
+            sigma = torch.sqrt(s_cw.pow(2) + s_ch.pow(2) + eps)
+            sin_alpha_1 = s_cw.abs() / sigma
+            sin_alpha_2 = s_ch.abs() / sigma
+            threshold = math.sqrt(2) / 2
+            sin_alpha = torch.where(sin_alpha_1 > threshold, sin_alpha_2, sin_alpha_1).clamp(0, 1 - eps)
+            angle_cost = torch.cos(torch.asin(sin_alpha) * 2 - math.pi / 2)
+            gamma = angle_cost - 2
+            rho_x = (s_cw / (cw + eps)).pow(2)
+            rho_y = (s_ch / (ch + eps)).pow(2)
+            distance_cost = 2 - torch.exp(gamma * rho_x) - torch.exp(gamma * rho_y)
+            omega_w = (w1 - w2).abs() / (torch.maximum(w1, w2) + eps)
+            omega_h = (h1 - h2).abs() / (torch.maximum(h1, h2) + eps)
+            shape_cost = (1 - torch.exp(-omega_w)).pow(4) + (1 - torch.exp(-omega_h)).pow(4)
+            return iou - 0.5 * (distance_cost + shape_cost)
         if CIoU or DIoU:  # Distance or Complete IoU https://arxiv.org/abs/1911.08287v1
             c2 = cw.pow(2) + ch.pow(2) + eps  # convex diagonal squared
             rho2 = (

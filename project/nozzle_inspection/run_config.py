@@ -33,16 +33,19 @@ class RunConfig:
     """
 
     # 运行模式。"train" 表示训练，"val" 表示验证。
-    action: str = "val"
+    action: str = "train"
 
     # 数据配置文件。通常不用改；里面指向根目录下已经准备好的 out_cross_hash_clean 数据集。
     data_yaml: Path = Path("project/nozzle_inspection/configs/dataset.yaml")
+    # 超参数配置文件。默认使用项目自定义的超参数，包含特定的数据增强设置。
+    # hyp_yaml: Path = Path("project/nozzle_inspection/configs/train_ng_ok.yaml")
+    hyp_yaml=None
 
     # 训练配置。
-    # 预训练模型。轻量实验可用 yolov8n.pt；想提高精度可改为 yolov8s.pt、yolov8m.pt 等。
-    model: str = "yolov8n.pt"
+    # 预训练模型。轻量实验可用 yolov8n.pt；。
+    model: str = "./runs/train/nozzle_ng_ok_v8-aug-continue/weights/best.pt"
     # 训练轮数。快速调试可设小一些，正式训练再增大。
-    epochs: int = 50
+    epochs: int = 20
     # 输入图像尺寸。常用 640；显存不足时可降低。
     imgsz: int = 640
     # 批次大小。显存不足时优先调小这个值。
@@ -51,14 +54,16 @@ class RunConfig:
     workers: int = 2
     # 优化器名称，直接传给 Ultralytics。
     optimizer: str = "AdamW"
+    # 边界框回归损失，可选 "ciou" 或 "siou"。
+    iou_type: str = "siou"
     # 训练输出根目录。最终目录为 train_project / train_name。
     train_project: Path = Path(r"runs/train")
     # 训练实验名。权重默认会保存在 train_project / train_name / weights / best.pt。
-    train_name: str = "nozzle_ng_ok_v8-训练有增强"
+    train_name: str = "nozzle_ng_ok_v8-siou"
     # True 表示允许复用已有输出目录；False 表示目录存在时自动递增新目录。
     exist_ok: bool = False
     # 数据增强总开关。False 会显式关闭 mosaic、翻转、HSV 等增强；True 使用 Ultralytics 默认增强。
-    enable_augmentation: bool = False
+    enable_augmentation: bool = True
     # 试运行开关。True 只打印参数，不真正训练或验证。
     dry_run: bool = False
 
@@ -66,11 +71,11 @@ class RunConfig:
     # 待验证权重路径。训练完成后通常指向 runs/detect/.../weights/best.pt。
     weights: Path = Path("runs/train/"+train_name+"/weights/best.pt")
     # 置信度阈值。想观察更严格的检测效果可调高，例如 0.5 或 0.7。
-    conf: float = 0.5
+    conf: float = 0.25
     # NMS IoU 阈值。一般保持默认即可。
     iou: float = 0.45
     # 验证数据划分。"train" 复查训练集，"val" 评估验证集，"test" 评估测试集。
-    eval_task: str = "train"
+    eval_task: str = "val"
     # 验证输出根目录。最终目录为 val_project / val_name。
     val_project: Path = Path("runs/val/"+train_name)
     # 验证实验名。这里把 conf 拼进名字，方便比较不同置信度阈值。
